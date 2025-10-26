@@ -38,3 +38,22 @@ Use the `evidence` map to jump from sink to the line where the tainted variable 
 - Update `source_sink_pipeline/analyzers/javascript.py` for additional Express middleware patterns or sanitization helpers.
 
 This pipeline is deterministic and fast (no Node dependencies). It finds the classic DVWA SQL injection flow and NodeGoat’s `eval` sinks out of the box, making it a solid pre-processing step before your LLM walkthrough.
+
+## Optional: prepare LLM context
+```bash
+# after generating findings.json
+python3 context_generation/build_context.py --findings findings.json --output context_payloads.json
+```
+This tries to use `tree_sitter_languages` to extract the containing function/class for each finding. If tree-sitter is unavailable it falls back to brace-based slicing. The result is a JSON payload with `code`, `start_line`, `sink_line`, `flow`, etc. ready for prompting an LLM.
+
+## Render prompts
+```bash
+python3 prompt_generation/generate_prompts.py --context context_payloads.json --output prompts.json
+```
+This produces detection/remediation prompt text for every finding so you can feed them directly to your LLM client.
+
+## Call the LLM (optional)
+```bash
+python3 prompt_generation/query_llm.py --prompts-file prompts.json --index 0 --type detection
+```
+Requires environment variable `ARK_API_KEY` and the `openai` Python package (install with `pip install openai`). Add `--stream` for streaming responses or `--type remediation` to send the fix prompt.
