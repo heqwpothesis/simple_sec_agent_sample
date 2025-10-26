@@ -1,0 +1,201 @@
+[
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/low.php",
+    "language": "php",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "code": "<?php\n\nif( isset( $_REQUEST[ 'Submit' ] ) ) {\n\t// Get input\n\t$id = $_REQUEST[ 'id' ];\n\n\tswitch ($_DVWA['SQLI_DB']) {\n\t\tcase MYSQL:\n\t\t\t// Check database\n\t\t\t$query  = \"SELECT first_name, last_name FROM users WHERE user_id = '$id';\";\n\t\t\t$result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );\n\n\t\t\t// Get results\n\t\t\twhile( $row = mysqli_fetch_assoc( $result ) ) {\n\t\t\t\t// Get values\n\t\t\t\t$first = $row[\"first_name\"];\n\t\t\t\t$last  = $row[\"last_name\"];\n\n\t\t\t\t// Feedback for end user\n\t\t\t\t$html .= \"<pre>ID: {$id}<br />First name: {$first}<br />Surname: {$last}</pre>\";\n\t\t\t}",
+    "start_line": 1,
+    "end_line": 21,
+    "sink_line": 11,
+    "sources": [
+      "$id"
+    ],
+    "source_lines": {
+      "$id->query": 31
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/medium.php",
+    "language": "php",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"], $query) or die( '<pre>' . mysqli_error($GLOBALS[\"___mysqli_ston\"]) . '</pre>' );",
+    "code": "\nif( isset( $_POST[ 'Submit' ] ) ) {\n\t// Get input\n\t$id = $_POST[ 'id' ];\n\n\t$id = mysqli_real_escape_string($GLOBALS[\"___mysqli_ston\"], $id);\n\n\tswitch ($_DVWA['SQLI_DB']) {\n\t\tcase MYSQL:\n\t\t\t$query  = \"SELECT first_name, last_name FROM users WHERE user_id = $id;\";\n\t\t\t$result = mysqli_query($GLOBALS[\"___mysqli_ston\"], $query) or die( '<pre>' . mysqli_error($GLOBALS[\"___mysqli_ston\"]) . '</pre>' );\n\n\t\t\t// Get results\n\t\t\twhile( $row = mysqli_fetch_assoc( $result ) ) {\n\t\t\t\t// Display values\n\t\t\t\t$first = $row[\"first_name\"];\n\t\t\t\t$last  = $row[\"last_name\"];\n\n\t\t\t\t// Feedback for end user\n\t\t\t\t$html .= \"<pre>ID: {$id}<br />First name: {$first}<br />Surname: {$last}</pre>\";\n\t\t\t}",
+    "start_line": 2,
+    "end_line": 22,
+    "sink_line": 12,
+    "sources": [
+      "$id"
+    ],
+    "source_lines": {
+      "$id->query": 54
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/medium.php",
+    "language": "php",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "code": "\t\t\t} else {\n\t\t\t\techo \"Error in fetch \".$sqlite_db->lastErrorMsg();\n\t\t\t}\n\t\t\tbreak;\n\t}\n}\n\n// This is used later on in the index.php page\n// Setting it here so we can close the database connection in here like in the rest of the source scripts\n$query  = \"SELECT COUNT(*) FROM users;\";\n$result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );\n$number_of_rows = mysqli_fetch_row( $result )[0];\n\nmysqli_close($GLOBALS[\"___mysqli_ston\"]);\n?>",
+    "start_line": 45,
+    "end_line": 59,
+    "sink_line": 55,
+    "sources": [
+      "$id"
+    ],
+    "source_lines": {
+      "$id->query": 54
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/low.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "code": "<?php\n\nif( isset( $_POST[ 'Submit' ]  ) ) {\n\t// Get input\n\t$target = $_REQUEST[ 'ip' ];\n\n\t// Determine OS and execute the ping command.\n\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t// Windows\n\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t}\n\telse {\n\t\t// *nix\n\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t}\n\n\t// Feedback for the end user\n\t$html .= \"<pre>{$cmd}</pre>\";\n}\n",
+    "start_line": 1,
+    "end_line": 20,
+    "sink_line": 10,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 5
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/low.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "code": "\t// Get input\n\t$target = $_REQUEST[ 'ip' ];\n\n\t// Determine OS and execute the ping command.\n\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t// Windows\n\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t}\n\telse {\n\t\t// *nix\n\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t}\n\n\t// Feedback for the end user\n\t$html .= \"<pre>{$cmd}</pre>\";\n}\n\n?>",
+    "start_line": 4,
+    "end_line": 21,
+    "sink_line": 14,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 5
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/impossible.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "code": "\t$octet = explode( \".\", $target );\n\n\t// Check IF each octet is an integer\n\tif( ( is_numeric( $octet[0] ) ) && ( is_numeric( $octet[1] ) ) && ( is_numeric( $octet[2] ) ) && ( is_numeric( $octet[3] ) ) && ( sizeof( $octet ) == 4 ) ) {\n\t\t// If all 4 octets are int's put the IP back together.\n\t\t$target = $octet[0] . '.' . $octet[1] . '.' . $octet[2] . '.' . $octet[3];\n\n\t\t// Determine OS and execute the ping command.\n\t\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t\t// Windows\n\t\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t\t}\n\t\telse {\n\t\t\t// *nix\n\t\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t\t}\n\n\t\t// Feedback for the end user\n\t\t$html .= \"<pre>{$cmd}</pre>\";\n\t}\n\telse {",
+    "start_line": 12,
+    "end_line": 32,
+    "sink_line": 22,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 8,
+      "$target->target": 17
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/impossible.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "code": "\t\t// If all 4 octets are int's put the IP back together.\n\t\t$target = $octet[0] . '.' . $octet[1] . '.' . $octet[2] . '.' . $octet[3];\n\n\t\t// Determine OS and execute the ping command.\n\t\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t\t// Windows\n\t\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t\t}\n\t\telse {\n\t\t\t// *nix\n\t\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t\t}\n\n\t\t// Feedback for the end user\n\t\t$html .= \"<pre>{$cmd}</pre>\";\n\t}\n\telse {\n\t\t// Ops. Let the user name theres a mistake\n\t\t$html .= '<pre>ERROR: You have entered an invalid IP.</pre>';\n\t}\n}",
+    "start_line": 16,
+    "end_line": 36,
+    "sink_line": 26,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 8,
+      "$target->target": 17
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/medium.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "code": "\t\t'&&' => '',\n\t\t';'  => '',\n\t);\n\n\t// Remove any of the characters in the array (blacklist).\n\t$target = str_replace( array_keys( $substitutions ), $substitutions, $target );\n\n\t// Determine OS and execute the ping command.\n\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t// Windows\n\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t}\n\telse {\n\t\t// *nix\n\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t}\n\n\t// Feedback for the end user\n\t$html .= \"<pre>{$cmd}</pre>\";\n}\n",
+    "start_line": 9,
+    "end_line": 29,
+    "sink_line": 19,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 5,
+      "$target->target": 14
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/medium.php",
+    "language": "php",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "code": "\t// Remove any of the characters in the array (blacklist).\n\t$target = str_replace( array_keys( $substitutions ), $substitutions, $target );\n\n\t// Determine OS and execute the ping command.\n\tif( stristr( php_uname( 's' ), 'Windows NT' ) ) {\n\t\t// Windows\n\t\t$cmd = shell_exec( 'ping  ' . $target );\n\t}\n\telse {\n\t\t// *nix\n\t\t$cmd = shell_exec( 'ping  -c 4 ' . $target );\n\t}\n\n\t// Feedback for the end user\n\t$html .= \"<pre>{$cmd}</pre>\";\n}\n\n?>",
+    "start_line": 13,
+    "end_line": 30,
+    "sink_line": 23,
+    "sources": [
+      "$target"
+    ],
+    "source_lines": {
+      "$target": 5,
+      "$target->target": 14
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/fi/source/high.php",
+    "language": "php",
+    "flow": "$file -> if( !fnmatch( \"file*\", $file ) && $file != \"include.php\" ) {",
+    "code": "<?php\n\n// The page we wish to display\n$file = $_GET[ 'page' ];\n\n// Input validation\nif( !fnmatch( \"file*\", $file ) && $file != \"include.php\" ) {\n\t// This isn't the page we want!\n\techo \"ERROR: File not found!\";\n\texit;\n}",
+    "start_line": 1,
+    "end_line": 11,
+    "sink_line": 7,
+    "sources": [
+      "$file"
+    ],
+    "source_lines": {
+      "$file": 4
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "language": "javascript",
+    "flow": "direct req.* -> const preTax = eval(req.body.preTax);",
+    "code": "    this.handleContributionsUpdate = (req, res, next) => {\n\n        /*jslint evil: true */\n        // Insecure use of eval() to parse inputs\n        const preTax = eval(req.body.preTax);\n        const afterTax = eval(req.body.afterTax);\n        const roth = eval(req.body.roth);\n\n        /*\n        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval\n        const preTax = parseInt(req.body.preTax);\n        const afterTax = parseInt(req.body.afterTax);\n        const roth = parseInt(req.body.roth);\n        */\n        const {",
+    "start_line": 28,
+    "end_line": 42,
+    "sink_line": 32,
+    "sources": [
+      "direct req.*"
+    ],
+    "source_lines": {
+      "req.*": 32
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "language": "javascript",
+    "flow": "direct req.* -> const afterTax = eval(req.body.afterTax);",
+    "code": "    this.handleContributionsUpdate = (req, res, next) => {\n\n        /*jslint evil: true */\n        // Insecure use of eval() to parse inputs\n        const preTax = eval(req.body.preTax);\n        const afterTax = eval(req.body.afterTax);\n        const roth = eval(req.body.roth);\n\n        /*\n        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval\n        const preTax = parseInt(req.body.preTax);\n        const afterTax = parseInt(req.body.afterTax);\n        const roth = parseInt(req.body.roth);\n        */\n        const {\n            userId",
+    "start_line": 28,
+    "end_line": 43,
+    "sink_line": 33,
+    "sources": [
+      "direct req.*"
+    ],
+    "source_lines": {
+      "req.*": 33
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "language": "javascript",
+    "flow": "direct req.* -> const roth = eval(req.body.roth);",
+    "code": "    this.handleContributionsUpdate = (req, res, next) => {\n\n        /*jslint evil: true */\n        // Insecure use of eval() to parse inputs\n        const preTax = eval(req.body.preTax);\n        const afterTax = eval(req.body.afterTax);\n        const roth = eval(req.body.roth);\n\n        /*\n        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval\n        const preTax = parseInt(req.body.preTax);\n        const afterTax = parseInt(req.body.afterTax);\n        const roth = parseInt(req.body.roth);\n        */\n        const {\n            userId\n        } = req.session;",
+    "start_line": 28,
+    "end_line": 44,
+    "sink_line": 34,
+    "sources": [
+      "direct req.*"
+    ],
+    "source_lines": {
+      "req.*": 34
+    }
+  }
+]
