@@ -1,0 +1,175 @@
+[
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/low.php",
+    "line": 11,
+    "language": "php",
+    "sources": [
+      "$id"
+    ],
+    "sink": "$result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "evidence": {
+      "$id->query": 31
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/medium.php",
+    "line": 12,
+    "language": "php",
+    "sources": [
+      "$id"
+    ],
+    "sink": "$result = mysqli_query($GLOBALS[\"___mysqli_ston\"], $query) or die( '<pre>' . mysqli_error($GLOBALS[\"___mysqli_ston\"]) . '</pre>' );",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"], $query) or die( '<pre>' . mysqli_error($GLOBALS[\"___mysqli_ston\"]) . '</pre>' );",
+    "evidence": {
+      "$id->query": 54
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/sqli/source/medium.php",
+    "line": 55,
+    "language": "php",
+    "sources": [
+      "$id"
+    ],
+    "sink": "$result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "flow": "$id -> $result = mysqli_query($GLOBALS[\"___mysqli_ston\"],  $query ) or die( '<pre>' . ((is_object($GLOBALS[\"___mysqli_ston\"])) ? mysqli_error($GLOBALS[\"___mysqli_ston\"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );",
+    "evidence": {
+      "$id->query": 54
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/low.php",
+    "line": 10,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "evidence": {
+      "$target": 5
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/low.php",
+    "line": 14,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "evidence": {
+      "$target": 5
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/impossible.php",
+    "line": 22,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "evidence": {
+      "$target": 8,
+      "$target->target": 17
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/impossible.php",
+    "line": 26,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "evidence": {
+      "$target": 8,
+      "$target->target": 17
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/medium.php",
+    "line": 19,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  ' . $target );",
+    "evidence": {
+      "$target": 5,
+      "$target->target": 14
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/exec/source/medium.php",
+    "line": 23,
+    "language": "php",
+    "sources": [
+      "$target"
+    ],
+    "sink": "$cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "flow": "$target -> $cmd = shell_exec( 'ping  -c 4 ' . $target );",
+    "evidence": {
+      "$target": 5,
+      "$target->target": 14
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/DVWA/vulnerabilities/fi/source/high.php",
+    "line": 7,
+    "language": "php",
+    "sources": [
+      "$file"
+    ],
+    "sink": "if( !fnmatch( \"file*\", $file ) && $file != \"include.php\" ) {",
+    "flow": "$file -> if( !fnmatch( \"file*\", $file ) && $file != \"include.php\" ) {",
+    "evidence": {
+      "$file": 4
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "line": 32,
+    "language": "javascript",
+    "sources": [
+      "direct req.*"
+    ],
+    "sink": "const preTax = eval(req.body.preTax);",
+    "flow": "direct req.* -> const preTax = eval(req.body.preTax);",
+    "evidence": {
+      "req.*": 32
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "line": 33,
+    "language": "javascript",
+    "sources": [
+      "direct req.*"
+    ],
+    "sink": "const afterTax = eval(req.body.afterTax);",
+    "flow": "direct req.* -> const afterTax = eval(req.body.afterTax);",
+    "evidence": {
+      "req.*": 33
+    }
+  },
+  {
+    "file": "/home/services/sec_agents/NodeGoat/app/routes/contributions.js",
+    "line": 34,
+    "language": "javascript",
+    "sources": [
+      "direct req.*"
+    ],
+    "sink": "const roth = eval(req.body.roth);",
+    "flow": "direct req.* -> const roth = eval(req.body.roth);",
+    "evidence": {
+      "req.*": 34
+    }
+  }
+]

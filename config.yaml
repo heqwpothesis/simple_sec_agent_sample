@@ -1,0 +1,19 @@
+targets:
+  - path: ../DVWA
+    language: php
+    include:
+      - vulnerabilities/sqli/source
+      - vulnerabilities/exec/source
+      - vulnerabilities/fi/source
+      - vulnerabilities/cmdi/source
+      - vulnerabilities/xss_r/source
+      - vulnerabilities/xss_s/source
+      - vulnerabilities/include/source
+      - vulnerabilities/upload/source
+  - path: ../NodeGoat/app
+    language: javascript
+    include:
+      - routes
+      - controllers
+
+default_output: findings.json
