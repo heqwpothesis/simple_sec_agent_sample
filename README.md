@@ -5,6 +5,7 @@ Improved static pipeline tailored for DVWA (PHP) and NodeGoat (Node/Express). It
 ## Layout
 - `run_pipeline.py` – CLI entry point (Python 3.10+).
 - `config.yaml` – sample configuration that targets DVWA SQLi/XSS folders and NodeGoat routes.
+- `pipelines/agent/` – LangGraph-based agent entrypoint that runs scan/context/prompt/(optional) LLM in one command.
 - `source_sink_pipeline/` – package containing analyzers and helpers.
   - `analyzers/php.py` – PHP taint propagation using superglobal detection, assignment tracking, sink matching.
   - `analyzers/javascript.py` – Node/Express taint tracking (req.* sources, eval/DB/response sinks).
@@ -57,3 +58,27 @@ This produces detection/remediation prompt text for every finding so you can fee
 python3 prompt_generation/query_llm.py --prompts-file prompts.json --index 0 --type detection
 ```
 Requires environment variable `ARK_API_KEY` and the `openai` Python package (install with `pip install openai`). Add `--stream` for streaming responses or `--type remediation` to send the fix prompt.
+
+## Agent entrypoint (new)
+The legacy scripts above are unchanged. You can also run the full flow with the agent runner:
+
+```bash
+python3 pipelines/agent/run_agent.py \
+  --config config.yaml \
+  --findings-output findings.json \
+  --context-output context_payloads.json \
+  --prompts-output prompts.json
+```
+
+Optional LLM execution:
+
+```bash
+python3 pipelines/agent/run_agent.py \
+  --config config.yaml \
+  --findings-output findings.json \
+  --context-output context_payloads.json \
+  --prompts-output prompts.json \
+  --run-llm --index 0 --type detection --model deepseek-v3-1-terminus
+```
+
+When `--run-llm` is enabled, set `ARK_API_KEY` (or pass `--api-key`), and optionally override endpoint with `--base-url`.
