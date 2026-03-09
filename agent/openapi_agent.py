@@ -58,31 +58,36 @@ OWNER_FIELD_CANDIDATES = [
 ]
 
 DEFAULT_ID_CANDIDATES: tuple[int, ...] = tuple(list(range(1, 11)) + list(range(100, 111)) + list(range(1000, 1006)))
+FAMILY_PRIORITY: tuple[str, ...] = ("orders", "documents", "users")
 
 # ----------------- Helpers -----------------
-def extract_ids_from_payload(payload: Union[Dict[str, Any], List[Any]], my_user_id: Optional[int]) -> List[int]:
+def extract_resource_ids_from_payload(payload: Union[Dict[str, Any], List[Any]], id_param_name: Optional[str]) -> List[int]:
     found: set[int] = set()
 
-    def walker(node: Union[Dict[str, Any], List[Any], Any], owner_hint: Optional[Union[int, str]] = None):
+    def walker(node: Union[Dict[str, Any], List[Any], Any]):
         if isinstance(node, dict):
-            local_owner = owner_hint
             for key, value in node.items():
-                if isinstance(value, (int, str)):
-                    lower = key.lower()
-                    if lower in OWNER_FIELD_CANDIDATES or "owner" in lower:
-                        local_owner = value
-                    if lower == "id" or lower.endswith("_id"):
-                        if isinstance(value, int):
-                            if local_owner is None or my_user_id is None or str(local_owner) == str(my_user_id):
-                                found.add(value)
+                if isinstance(value, int) and key in {id_param_name, "id"}:
+                    found.add(value)
                 elif isinstance(value, (dict, list)):
-                    walker(value, local_owner)
+                    walker(value)
         elif isinstance(node, list):
             for item in node:
-                walker(item, owner_hint)
+                walker(item)
 
     walker(payload)
     return sorted(found)
+
+
+def _resource_family(path: str) -> str:
+    parts = [part for part in path.split("/") if part]
+    return parts[0] if parts else ""
+
+
+def _family_rank(family: str) -> tuple[int, str]:
+    if family in FAMILY_PRIORITY:
+        return (FAMILY_PRIORITY.index(family), family)
+    return (len(FAMILY_PRIORITY), family)
 
 
 def discover_ids_via_probe(state: AgentState, limit: int = 3) -> List[int]:
@@ -160,50 +165,62 @@ def pick_object_get_paths(spec: Dict[str, Any]) -> Dict[str, Any]:
     """
     paths = spec.get("paths", {})
     param_pat = re.compile(r"\{([^}/]+)\}")
-    obj_get = None
-    obj_get_secure = None
-    list_mine = None
-    id_param = None
+    families: Dict[str, Dict[str, Any]] = {}
 
-    # 找列表接口
-    for p in paths:
-        if re.search(r"/(mine|my)\b", p):
-            if "get" in paths[p]:
-                list_mine = p
-                break
-
-    # 找对象级 GET
-    candidates = []
-    for p, ops in paths.items():
+    for path, ops in paths.items():
         if "get" not in ops:
             continue
-        m = param_pat.findall(p)
-        if len(m) == 1:  # 一个 path 参数
-            candidates.append((p, m[0]))
 
-    # 优先寻找不安全/安全成对的
-    for p, prm in candidates:
-        # 假设安全版以 /secure/ 作为中缀（demo 约定）
-        secure_guess = p.replace("/{", "/secure/{")
-        if secure_guess in paths and "get" in paths[secure_guess]:
-            obj_get = p
-            obj_get_secure = secure_guess
-            id_param = prm
-            break
+        family = _resource_family(path)
+        if not family:
+            continue
 
-    # 如果没找到成对的，就拿第一个
-    if not obj_get and candidates:
-        obj_get, id_param = candidates[0]
-        # 尝试猜测 secure 对照路径
-        secure_guess = obj_get.replace("/{", "/secure/{")
-        if secure_guess in paths and "get" in paths[secure_guess]:
-            obj_get_secure = secure_guess
+        info = families.setdefault(family, {"list_mine_path": None, "candidates": []})
+        if re.fullmatch(rf"/{re.escape(family)}/(mine|my)", path):
+            info["list_mine_path"] = path
+            continue
+
+        params = param_pat.findall(path)
+        if len(params) != 1 or "/secure/" in path:
+            continue
+
+        secure_guess = path.replace("/{", "/secure/{", 1)
+        info["candidates"].append(
+            {
+                "obj_get_path": path,
+                "obj_get_secure_path": secure_guess if secure_guess in paths and "get" in paths[secure_guess] else None,
+                "id_param_name": params[0],
+            }
+        )
+
+    ranked_families = sorted(families, key=_family_rank)
+
+    for require_list_mine in (True, False):
+        for require_secure in (True, False):
+            for family in ranked_families:
+                info = families[family]
+                if require_list_mine and not info["list_mine_path"]:
+                    continue
+
+                candidates = info["candidates"]
+                if require_secure:
+                    candidates = [candidate for candidate in candidates if candidate["obj_get_secure_path"]]
+                if not candidates:
+                    continue
+
+                selected = candidates[0]
+                return {
+                    "obj_get_path": selected["obj_get_path"],
+                    "obj_get_secure_path": selected["obj_get_secure_path"],
+                    "list_mine_path": info["list_mine_path"],
+                    "id_param_name": selected["id_param_name"],
+                }
 
     return {
-        "obj_get_path": obj_get,
-        "obj_get_secure_path": obj_get_secure,
-        "list_mine_path": list_mine,
-        "id_param_name": id_param
+        "obj_get_path": None,
+        "obj_get_secure_path": None,
+        "list_mine_path": None,
+        "id_param_name": None,
     }
 
 def node_select_paths(state: AgentState) -> AgentState:
@@ -222,7 +239,7 @@ def node_list_my_resources(state: AgentState) -> AgentState:
     if state.get("list_mine_path"):
         sc, body = _get(base, state["list_mine_path"], token)
         if sc == 200 and isinstance(body, (dict, list)):
-            my_ids = extract_ids_from_payload(body, state.get("my_user_id"))
+            my_ids = extract_resource_ids_from_payload(body, state.get("id_param_name"))
 
     if not my_ids:
         my_ids = discover_ids_via_probe(state)
@@ -276,13 +293,13 @@ def node_probe(state: AgentState) -> AgentState:
     if sc != 200 or not isinstance(body, dict):
         raise RuntimeError("baseline fetch failed")
     owner_field = infer_owner_field(body) or "owner_id"
-    obs.append({"kind": "baseline", "status": sc, "body": body})
+    obs.append({"kind": "baseline", "resource_id": state["my_ids"][0], "status": sc, "body": body})
 
     # 探测：访问相邻 ID（潜在非本人对象）
     for oid in state["probe_ids"]:
         insecure_path = path_fill(state["obj_get_path"], state["id_param_name"], oid)
         sc1, b1 = _get(base, insecure_path, token)
-        rec = {"kind": "probe_insecure", "order_id": oid, "status": sc1, "body": b1}
+        rec = {"kind": "probe_insecure", "resource_id": oid, "status": sc1, "body": b1}
         if state.get("obj_get_secure_path"):
             secure_path = path_fill(state["obj_get_secure_path"], state["id_param_name"], oid)
             sc2, b2 = _get(base, secure_path, token)
@@ -316,7 +333,7 @@ def node_verdict(state: AgentState) -> AgentState:
             looks_forbidden_on_secure = (o.get("status_secure") in (401,403))
             if owner_val is not None and str(owner_val) != str(base_owner_value) and looks_forbidden_on_secure:
                 cases.append({
-                    "resource_id": o["order_id"],
+                    "resource_id": o["resource_id"],
                     "owner_value": owner_val,
                     "status_insecure": o["status"],
                     "status_secure": o.get("status_secure")
@@ -332,19 +349,24 @@ def node_report(state: AgentState) -> AgentState:
 
     if not v.get("is_idor"):
         md = "# IDOR Scan Report\n\n- Result: **No IDOR detected**\n- Evidence: secure endpoints align with insecure ones or ownership matches."
-        open("idor_report.md","w",encoding="utf-8").write(md)
+        with open("idor_report.md", "w", encoding="utf-8") as handle:
+            handle.write(md)
         print("[bold green]Report[/] → idor_report.md (no issue)")
         return {"report_md": md}
 
     poc_blocks = []
     for c in v["cases"]:
+        insecure_path = path_fill(state["obj_get_path"], state["id_param_name"], c["resource_id"])
+        secure_path = None
+        if state.get("obj_get_secure_path"):
+            secure_path = path_fill(state["obj_get_secure_path"], state["id_param_name"], c["resource_id"])
         poc_blocks.append(f"""```bash
 # 1) 登录获取 token（示例用户：bob）
 curl -s -X POST {base}/login -H "Content-Type: application/json" -d '{{"username":"bob","password":"bob123"}}'
 # 2) 使用 token 访问不属于当前用户的资源（不安全端点返回 200）
-curl -H "Authorization: Bearer <BOB_TOKEN>" {base}/orders/{c["resource_id"]}
+curl -H "Authorization: Bearer <BOB_TOKEN>" {base}{insecure_path}
 # 3) 对照：安全端点返回 {c["status_secure"]}
-curl -H "Authorization: Bearer <BOB_TOKEN>" {base}/orders/secure/{c["resource_id"]}
+curl -H "Authorization: Bearer <BOB_TOKEN>" {base}{secure_path or "<secure-endpoint-unavailable>"}
 ```""")
 
     fix = (
@@ -353,7 +375,7 @@ curl -H "Authorization: Bearer <BOB_TOKEN>" {base}/orders/secure/{c["resource_id
         "2）按 `WHERE owner_id = current_user_id` 查询或在取回对象后校验 `obj.owner == current_user`；\n"
         "3）不属于当前用户且非管理员时返回 `403 Forbidden`；\n"
         "4）避免信任客户端传入的 `user_id`/`role` 字段。\n"
-        "示例修复见后端 `/orders/secure/{order_id}` 的实现。"
+        "示例修复见对应的安全对照接口实现。"
     )
 
     md = [
@@ -373,7 +395,8 @@ curl -H "Authorization: Bearer <BOB_TOKEN>" {base}/orders/secure/{c["resource_id
         "> 本报告仅用于本地教学/自测；请勿用于未授权目标。"
     ]
     report_md = "\n".join(md)
-    open("idor_report.md","w",encoding="utf-8").write(report_md)
+    with open("idor_report.md", "w", encoding="utf-8") as handle:
+        handle.write(report_md)
     print("[bold green]Report[/] → idor_report.md")
     return {"report_md": report_md}
 
@@ -386,7 +409,7 @@ def build_graph():
     g.add_node("list_mine", node_list_my_resources)
     g.add_node("prepare_probes", node_prepare_probes)
     g.add_node("probe", node_probe)
-    g.add_node("verdict", node_verdict)
+    g.add_node("evaluate_verdict", node_verdict)
     g.add_node("report", node_report)
 
     g.set_entry_point("login")
@@ -396,8 +419,8 @@ def build_graph():
     g.add_edge("select_paths", "list_mine")
     g.add_edge("list_mine", "prepare_probes")
     g.add_edge("prepare_probes", "probe")
-    g.add_edge("probe", "verdict")
-    g.add_edge("verdict", "report")
+    g.add_edge("probe", "evaluate_verdict")
+    g.add_edge("evaluate_verdict", "report")
     g.add_edge("report", END)
     return g.compile()
 

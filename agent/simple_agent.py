@@ -39,22 +39,7 @@ class SimpleIDORAgent:
         return final
         
     def _build_graph(self):
-        g = StateGraph(AgentState)
-        g.add_node("login", node_login)
-        g.add_node("baseline", node_baseline)
-        g.add_node("prepare_probe", node_prepare_probe)
-        g.add_node("probe", node_probe)
-        g.add_node("verdict", node_verdict)
-        g.add_node("report", node_report)
-
-        g.set_entry_point("login")
-        g.add_edge("login", "baseline")
-        g.add_edge("baseline", "prepare_probe")
-        g.add_edge("prepare_probe", "probe")
-        g.add_edge("probe", "verdict")
-        g.add_edge("verdict", "report")
-        g.add_edge("report", END)
-        return g.compile()
+        return build_graph()
 
 class AgentState(TypedDict, total=False):
     base_url: str
@@ -221,7 +206,8 @@ def node_report(state: AgentState) -> AgentState:
 
     if not v.get("is_idor"):
         md = "# IDOR Scan Report\n\n- Result: **No IDOR detected in demo paths.**"
-        open("idor_report.md","w",encoding="utf-8").write(md)
+        with open("idor_report.md", "w", encoding="utf-8") as handle:
+            handle.write(md)
         print("[bold green]Report[/] → idor_report.md (no issue)")
         return {"report_md": md}
 
@@ -273,7 +259,8 @@ curl -H "Authorization: Bearer <BOB_TOKEN>" {base}/orders/secure/{c["order_id"]}
         ""
     ]
     report_md = "\n".join(md)
-    open("idor_report.md","w",encoding="utf-8").write(report_md)
+    with open("idor_report.md", "w", encoding="utf-8") as handle:
+        handle.write(report_md)
     print("[bold green]Report[/] → idor_report.md")
     return {"report_md": report_md}
 
@@ -283,15 +270,15 @@ def build_graph():
     g.add_node("baseline", node_baseline)
     g.add_node("prepare_probe", node_prepare_probe)
     g.add_node("probe", node_probe)
-    g.add_node("verdict", node_verdict)
+    g.add_node("evaluate_verdict", node_verdict)
     g.add_node("report", node_report)
 
     g.set_entry_point("login")
     g.add_edge("login", "baseline")
     g.add_edge("baseline", "prepare_probe")
     g.add_edge("prepare_probe", "probe")
-    g.add_edge("probe", "verdict")
-    g.add_edge("verdict", "report")
+    g.add_edge("probe", "evaluate_verdict")
+    g.add_edge("evaluate_verdict", "report")
     g.add_edge("report", END)
     return g.compile()
 
